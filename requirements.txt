@@ -1,0 +1,29 @@
+# polymarket-logical-arb — shadow/paper venv (no live SDK).
+#
+# Same base stack as the bear bot, plus three arb-specific additions:
+#   - anthropic        : LLM market-pair / ambiguity detection (primary)
+#   - dateparser       : robust date extraction from market questions
+#   - sentence-transformers : embedding-based clustering FALLBACK only.
+#     This pulls in torch (multi-GB). It is OPTIONAL — clustering uses the
+#     Anthropic LLM as the primary path and only falls back to embeddings
+#     when the API is unavailable. Install it only if you want the fallback:
+#       pip install sentence-transformers
+#
+# Create + install (shadow/paper):
+#   python3 -m venv ~/logicvenv
+#   ~/logicvenv/bin/pip install -r requirements.txt
+
+# base runtime (same as bear bot)
+py-clob-client-v2>=1.0.0
+websockets>=12.0
+aiohttp>=3.9.0
+rich>=13.7.0
+python-dotenv>=1.0.0
+web3>=6.0.0
+
+# arb-specific
+anthropic>=0.40.0
+dateparser>=1.2.0
+
+# OPTIONAL embedding fallback for clustering (heavy — torch). Uncomment to use:
+# sentence-transformers>=3.0.0

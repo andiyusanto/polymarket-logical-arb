@@ -1,0 +1,23 @@
+[Unit]
+Description=Polymarket Logical-Arb (shadow mode)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tengkorakhitam
+WorkingDirectory=/home/tengkorakhitam/polymarket-arbitrage-bot/polymarket-logical-arb
+# Shadow/paper venv (see requirements.txt): python3 -m venv ~/logicvenv
+ExecStart=/home/tengkorakhitam/logicvenv/bin/python shadow.py
+Restart=always
+RestartSec=10
+StartLimitBurst=20
+StartLimitIntervalSec=600
+# shadow.py writes its own daily-rotating file (logs/<date>_shadow.log via
+# core.logging_setup). Send the duplicate console stream to journald — which
+# rotates/vacuums itself — instead of an ever-growing append: file.
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

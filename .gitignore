@@ -1,3 +1,10 @@
+# Logical-arb runtime artifacts (never commit trade/shadow data or reviews)
+*.db
+*.db-wal
+*.db-shm
+cluster_review.log
+logs/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

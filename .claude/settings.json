@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//home/tengkorakhitam/polymarket-arbitrage-bot/**)",
+      "Read(//home/tengkorakhitam/**)",
+      "Read(//home/tengkorakhitam/polymarket-arbitrage-bot/bear-oracle-confirmed-sniper/**)",
+      "Bash(echo \"=== bear bot tree \\(depth 2\\) ===\" *)",
+      "Read(//home/tengkorakhitam/polymarket-arbitrage-bot/bear-oracle-confirmed-sniper/core/**)",
+      "Read(//home/tengkorakhitam/polymarket-arbitrage-bot/bear-oracle-confirmed-sniper/feeds/**)",
+      "Read(//home/tengkorakhitam/polymarket-arbitrage-bot/bear-oracle-confirmed-sniper/execution/**)",
+      "Read(//home/tengkorakhitam/polymarket-arbitrage-bot/bear-oracle-confirmed-sniper/engine/**)",
+      "Bash(python3 -c \"import dotenv; print\\('dotenv OK', dotenv.__version__\\)\")",
+      "Bash(python3 -c \"import aiohttp; print\\('aiohttp OK'\\)\")",
+      "Bash(python3 -c \"import websockets; print\\('websockets OK'\\)\")",
+      "Bash(python3 -c \"import rich; print\\('rich OK'\\)\")",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 bot.py --live)",
+      "Bash(python3 -m py_compile bot.py shadow.py setup.py get_creds.py core/*.py feeds/*.py engine/*.py execution/*.py analysis/*.py ui/*.py)",
+      "Bash(timeout 40 python3 -c ' *)",
+      "Bash(grep -iE '\\(\\\\*\\\\.db|\\\\*\\\\.log|\\\\.env$|logs/|__pycache__\\)' .gitignore)",
+      "Bash(python3 -c \"import bot, shadow, ui.dashboard, analysis.optimize, analysis.shadow_report, analysis.analyze\")",
+      "Bash(cd /home/tengkorakhitam/polymarket-arbitrage-bot *)"
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+# polymarket-logical-arb LIVE venv — base deps + polymarket-client (deposit-wallet SDK).
+#
+# Live bilateral execution (SdkExecutor) goes through polymarket-client; market
+# discovery still uses py-clob (public book reads), so both must coexist here.
+#
+# Create + install:
+#   python3 -m venv ~/logiclive
+#   ~/logiclive/bin/pip install -r requirements-sdk.txt
+#
+# If pip reports a RESOLUTION CONFLICT (eth-account / pydantic between
+# polymarket-client and py-clob-client-v2 / web3), STOP and migrate book reads
+# off py-clob onto the SDK and drop py-clob/web3.
+
+# existing runtime deps
+websockets>=12.0
+aiohttp>=3.9.0
+rich>=13.7.0
+python-dotenv>=1.0.0
+web3>=6.0.0
+py-clob-client-v2>=1.0.0
+
+# arb-specific
+anthropic>=0.40.0
+dateparser>=1.2.0
+
+# live execution via the deposit-wallet SDK (public pre-release; exact pin so
+# pip installs the pre-release without a global --pre)
+polymarket-client==0.1.0b9
