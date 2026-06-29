@@ -55,8 +55,14 @@ class Config:
     min_market_volume_usd: float = 5000.0
     market_refresh_interval_sec: int = 3600
     book_refresh_interval_sec: int = 5
-    gamma_page_limit: int = 500          # markets per Gamma page request
+    # Gamma /markets caps `limit` at 100 server-side regardless of the value
+    # sent, so this MUST be 100 — otherwise the "short page → last page"
+    # pagination check (len(page) < limit) trips on the very first page and
+    # discovery silently stops at 100 markets total.
+    gamma_page_limit: int = 100          # markets per Gamma page request (Gamma's max)
     max_markets_monitored: int = 1500    # safety cap on WS subscriptions
+    max_discovery_scan: int = 6000       # max markets to page through per refresh
+                                         # (bounds boot time when most are sub-volume)
 
     # ── Clustering ──────────────────────────────────────────────────
     cluster_refresh_interval_sec: int = 3600

@@ -73,7 +73,7 @@ class MarketDiscovery:
         seen: set[str] = set()
         offset = 0
         async with aiohttp.ClientSession() as session:
-            while len(markets) < CFG.max_markets_monitored:
+            while len(markets) < CFG.max_markets_monitored and offset < CFG.max_discovery_scan:
                 page = await self._fetch_page(session, offset)
                 if not page:
                     break
@@ -83,7 +83,7 @@ class MarketDiscovery:
                         seen.add(mi.token_id)
                         markets.append(mi)
                 if len(page) < CFG.gamma_page_limit:
-                    break
+                    break          # short page → no more markets to scan
                 offset += CFG.gamma_page_limit
         self._last_discovery = time.time()
         log.info(

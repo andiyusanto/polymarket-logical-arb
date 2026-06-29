@@ -344,6 +344,16 @@ Example:
   genuine arbs rejected at this gate based on cluster_review.log manual check |
   shadow_report.py output 2026-07-14
 
+[2026-06-30] gamma_page_limit 500 → 100 | BUG FIX, not tuning: Gamma /markets caps
+  `limit` at 100 server-side, so requesting 500 returned 100 and the
+  len(page) < limit pagination check tripped on page 1 → discovery silently
+  capped at 100 markets total (first live boot found only 100, 0 temporal/threshold
+  pairs). 100 is Gamma's real max; pagination now walks the full universe. Do NOT
+  raise this back to 500. | live shadow boot log 2026-06-29 23:25
+[2026-06-30] max_discovery_scan ADDED = 6000 | Bound boot-time paging when most
+  markets are below min_market_volume_usd (else the loop pages toward
+  max_markets_monitored indefinitely). | code review
+
 ---
 
 *Last updated: project initialization*
