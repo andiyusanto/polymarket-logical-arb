@@ -95,9 +95,11 @@ def main() -> None:
         print(f"  net would PASS G4 (>= {g4}c)      : {net_g4:4}/{n} ({net_g4/n*100:3.0f}%)")
         med = depth[len(depth) // 2] if depth else 0
         if med <= 0:
-            print("  ! median book depth $0 — slippage estimate UNRELIABLE (WS book not loaded)")
+            print("  median executable-side depth (binding leg): $0  — thin/one-sided "
+                  "book. NOTE: pre-fix DBs recorded a dead MarketInfo field, so $0 there "
+                  "is a telemetry artifact; the net slippage above is a real bid-side walk.")
         else:
-            print(f"  median book depth (thinner leg): ${med:.0f}")
+            print(f"  median executable-side depth (binding leg): ${med:.0f}")
 
     me_raw = [r["raw_spread_cents"] for r in rows
               if r["dependency_type"] == "MUTUAL_EXCLUSIVE" and r["raw_spread_cents"] is not None]
