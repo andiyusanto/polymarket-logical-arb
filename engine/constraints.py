@@ -191,13 +191,22 @@ def _prices_ok(*tokens, prices: Prices) -> bool:
 #             reach $Y by Dec"): monotone DECREASING (more time → harder), so the
 #             LATER deadline is the rarer event — inverted legs.
 # Only an explicit persistence/negation marker flips a market to "until";
-# everything else defaults to "by" (preserving prior behaviour). Bare "through"
-# and "hold" are intentionally excluded — they collide with achievement phrases
-# ("pass through", "hold elections"). Mis-handling a persistence market as
-# achievement legs the trade backwards (same bug class as threshold "dip to").
+# everything else defaults to "by" (preserving prior behaviour). Bare "hold",
+# "keep", and "through" are NOT enough on their own (they collide with
+# achievement phrases — "hold elections", "pass through congress"); they only
+# count with a state/level complement ("hold above $X") or a time token
+# ("through Q4"). Mis-handling a persistence market as achievement legs the trade
+# backwards (same bug class as threshold "dip to").
 _UNTIL_RE = re.compile(
     r"\b(?:remains?|remaining|stays?|staying|persists?|persisting|throughout|"
-    r"until|avoids?|"
+    r"until|avoids?|retains?|retaining|maintains?|maintaining|"
+    # "hold/keep <state>" — persistence only with a level/state complement so
+    # "hold elections" / "keep the promise" stay achievement.
+    r"(?:holds?|holding|keeps?|keeping)\s+(?:above|below|over|under|at|onto|"
+    r"control|power|steady)|"
+    # "through <time>" (not "throughout") survives like a deadline; anchor to a
+    # time token so "pass through congress" stays achievement.
+    r"through\s+(?:q[1-4]|20\d\d|the\s+(?:end|rest)|year[-\s]?end)|"
     # negation of ANY achievement verb inverts monotonicity ("not reach", "fail
     # to qualify", "never confirmed"); require whitespace after the marker so
     # hyphenated "not-for-profit" is not misread as a negation.
