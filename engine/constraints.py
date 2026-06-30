@@ -138,16 +138,24 @@ def _extract_threshold(text: str):
 # a phantom violation (the BTC/ETH "dip to" false PASSes in shadow). The DOWN
 # matcher is deliberately broad and wins over UP; an unclassifiable market returns
 # None and is skipped — we never trade a guessed direction (fail closed).
+#
+# "reach X or lower/higher" (Fed-rate, inflation ladders) carries the direction in
+# the SUFFIX, not the verb — "reach" alone is an up-word, but "or lower" makes it
+# down. We match the "or lower/less" / "or higher/more" SUFFIX (not bare
+# lower/higher) so the "lower bound" / "upper bound" noun phrases in those same
+# questions don't misfire. DOWN is checked first, so "reach … or lower" resolves
+# down before the "reach" up-word is reached.
 _DOWN_RE = re.compile(
     r"\b(?:dips?|dipping|falls?|falling|drops?|dropping|declines?|declining|"
     r"sinks?|sinking|slumps?|plunges?|plunging|tumbles?|tumbling|crash(?:es)?|"
-    r"crashing|below|under|beneath|less\s+than|lower\s+than|down\s+to)\b",
+    r"crashing|below|under|beneath|less\s+than|lower\s+than|down\s+to|"
+    r"or\s+(?:lower|less))\b",
     re.IGNORECASE,
 )
 _UP_RE = re.compile(
     r"\b(?:exceeds?|exceeding|above|over|more\s+than|greater\s+than|at\s+least|"
     r"reach(?:es)?|reaching|hits?|hitting|surpass(?:es)?|surpassing|climbs?|"
-    r"climbing|rises?|rising|up\s+to)\b",
+    r"climbing|rises?|rising|up\s+to|or\s+(?:higher|more|greater))\b",
     re.IGNORECASE,
 )
 
