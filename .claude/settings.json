@@ -19,7 +19,14 @@
       "Bash(timeout 40 python3 -c ' *)",
       "Bash(grep -iE '\\(\\\\*\\\\.db|\\\\*\\\\.log|\\\\.env$|logs/|__pycache__\\)' .gitignore)",
       "Bash(python3 -c \"import bot, shadow, ui.dashboard, analysis.optimize, analysis.shadow_report, analysis.analyze\")",
-      "Bash(cd /home/tengkorakhitam/polymarket-arbitrage-bot *)"
+      "Bash(cd /home/tengkorakhitam/polymarket-arbitrage-bot *)",
+      "Skill(claude-api)",
+      "Skill(claude-api:*)",
+      "Bash(python3 /tmp/claude-1000/-home-tengkorakhitam-polymarket-arbitrage-bot-polymarket-logical-arb/567148cb-045a-4be6-89c5-8ade2f9004d1/scratchpad/test_threshold_direction.py)",
+      "Bash(PYTHONPATH=/home/tengkorakhitam/polymarket-arbitrage-bot/polymarket-logical-arb python3 /tmp/claude-1000/-home-tengkorakhitam-polymarket-arbitrage-bot-polymarket-logical-arb/567148cb-045a-4be6-89c5-8ade2f9004d1/scratchpad/test_threshold_direction.py)",
+      "Bash(PYTHONPATH=/home/tengkorakhitam/polymarket-arbitrage-bot/polymarket-logical-arb python3 /tmp/claude-1000/-home-tengkorakhitam-polymarket-arbitrage-bot-polymarket-logical-arb/567148cb-045a-4be6-89c5-8ade2f9004d1/scratchpad/test_temporal_direction.py)",
+      "Bash([ -f \"$f\" ])",
+      "Bash(PYTHONPATH=. python3 -c ' *)"
     ]
   }
 }

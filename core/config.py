@@ -47,9 +47,24 @@ class Config:
     clob_ws: str = "wss://ws-subscriptions-clob.polymarket.com/ws/market"
 
     # ── LLM model (Anthropic) ───────────────────────────────────────
-    # Latest capable model for pair + ambiguity reasoning.
-    llm_model: str = "claude-opus-4-8"
-    llm_max_tokens: int = 4096
+    # Two call sites, deliberately different models (cost vs. judgment):
+    #   llm_model      — the G3 semantic ambiguity gate (engine/ambiguity.py).
+    #                    This is the moat: a false "genuine arb" here loses real
+    #                    capital, so it stays on the strongest model (Opus).
+    #   llm_pair_model — bulk pair detection (feeds/clustering.py). High volume,
+    #                    error-tolerant (downstream-filtered by the constraint
+    #                    engine + G2/G3 + human review), so a cheaper model is
+    #                    fine and cuts the recurring bill ~40% per token.
+    # Rule 1: whatever pair model you SHADOW with, run LIVE with the same —
+    # switching it changes which clusters form.
+    llm_model: str = "claude-opus-4-8"         # G3 ambiguity gate (the moat)
+    llm_pair_model: str = "claude-sonnet-4-6"  # bulk pair detection (cost)
+    # Pair-detection responses are a JSON array of pairs; a batch with a long
+    # threshold ladder can emit many objects. 4096 truncated mid-array and the
+    # whole batch's pairs were dropped (see Config Change Log 2026-06-30).
+    # 8192 gives headroom; the prompt also caps pairs to consecutive links and
+    # _salvage_objects recovers anything still cut off.
+    llm_max_tokens: int = 8192
 
     # ── Market discovery ────────────────────────────────────────────
     min_market_volume_usd: float = 5000.0
@@ -65,7 +80,14 @@ class Config:
                                          # (bounds boot time when most are sub-volume)
 
     # ── Clustering ──────────────────────────────────────────────────
-    cluster_refresh_interval_sec: int = 3600
+    # Gates the only recurring LLM cost: pair detection re-runs once per this
+    # interval (shadow.py / bot.py refresh loops). Clusters barely change
+    # hour-to-hour, so 12h cuts the bill ~12x vs hourly with negligible
+    # data-quality loss — book prices still stream continuously via WS, so live
+    # violation detection on existing clusters is unaffected; only newly created
+    # market series wait until the next refresh to be clustered. The G3 ambiguity
+    # gate is per-unique-pair (cached), NOT gated here, so the moat is untouched.
+    cluster_refresh_interval_sec: int = 43200    # 12h (was 3600 = 1h; cost)
     cluster_eps: float = 0.3             # DBSCAN fallback eps (LLM is primary)
     llm_pair_batch_size: int = 50        # markets per LLM call
     llm_confidence_threshold: float = 0.7

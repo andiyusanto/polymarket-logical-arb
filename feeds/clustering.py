@@ -57,6 +57,14 @@ not probabilistic. "Will BTC hit $100k by Sept?" and "Will BTC hit $100k by Dec?
 are deterministic (subset relationship). "Will BTC hit $100k?" and "Will ETH hit
 $5k?" are NOT — they are correlated but not logically dependent.
 
+For a SERIES of related markets (a threshold ladder like $90k/$100k/$110k, or a
+sequence of deadlines like Sept/Oct/Nov), output ONLY CONSECUTIVE links
+($90k–$100k, then $100k–$110k) — NOT every pairwise combination. The relationship
+chains transitively and the engine re-checks all members of a cluster, so
+consecutive links are sufficient and keep the response within budget.
+
+Keep "reasoning" under 20 words.
+
 Markets:
 {market_list}
 """
@@ -198,7 +206,7 @@ class MarketClusterer:
 
         def _call():
             return client.messages.create(
-                model=CFG.llm_model,
+                model=CFG.llm_pair_model,   # cheaper model for bulk pairing
                 max_tokens=CFG.llm_max_tokens,
                 messages=[{"role": "user", "content": prompt}],
             )
@@ -246,15 +254,63 @@ class MarketClusterer:
         try:
             return json.loads(text)
         except (json.JSONDecodeError, ValueError):
-            # salvage the outermost {...}
-            i, j = text.find("{"), text.rfind("}")
-            if 0 <= i < j:
-                try:
-                    return json.loads(text[i : j + 1])
-                except (json.JSONDecodeError, ValueError):
-                    pass
+            pass
+        # salvage the outermost {...}
+        i, j = text.find("{"), text.rfind("}")
+        if 0 <= i < j:
+            try:
+                return json.loads(text[i : j + 1])
+            except (json.JSONDecodeError, ValueError):
+                pass
+        # last resort: a response truncated mid-array by max_tokens (or otherwise
+        # malformed) has no balanced wrapper, so both attempts above fail and the
+        # whole batch's pairs would be lost. Recover every complete pair object
+        # that WAS emitted before the cutoff.
+        salvaged = MarketClusterer._salvage_objects(text)
+        if salvaged:
+            log.warning(
+                "LLM JSON truncated/malformed — salvaged %d complete pair object(s)",
+                len(salvaged),
+            )
+            return {"pairs": salvaged}
         log.warning("LLM returned unparseable JSON (first 200 chars): %s", text[:200])
         return {"pairs": []}
+
+    @staticmethod
+    def _salvage_objects(text: str) -> list[dict]:
+        """Recover complete {...} pair objects from truncated/garbled JSON.
+
+        Walks the text tracking brace depth (skipping string contents and escapes)
+        and json.loads each balanced object, keeping those that look like a pair
+        (have market_a_idx). A response cut off mid-array still yields every pair
+        fully emitted before the cutoff, instead of dropping the whole batch.
+        """
+        objs: list[dict] = []
+        stack: list[int] = []
+        in_str = False
+        esc = False
+        for idx, ch in enumerate(text):
+            if in_str:
+                if esc:
+                    esc = False
+                elif ch == "\\":
+                    esc = True
+                elif ch == '"':
+                    in_str = False
+                continue
+            if ch == '"':
+                in_str = True
+            elif ch == "{":
+                stack.append(idx)
+            elif ch == "}" and stack:
+                start = stack.pop()
+                try:
+                    obj = json.loads(text[start : idx + 1])
+                except (json.JSONDecodeError, ValueError):
+                    continue
+                if isinstance(obj, dict) and "market_a_idx" in obj:
+                    objs.append(obj)
+        return objs
 
     # ── Connected components from pairs ───────────────────────────────
     @staticmethod

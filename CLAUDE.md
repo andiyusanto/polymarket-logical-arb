@@ -353,6 +353,36 @@ Example:
 [2026-06-30] max_discovery_scan ADDED = 6000 | Bound boot-time paging when most
   markets are below min_market_volume_usd (else the loop pages toward
   max_markets_monitored indefinitely). | code review
+[2026-06-30] cluster_refresh_interval_sec 3600 → 43200 | COST, not signal tuning:
+  Pair detection re-runs once per this interval and is the only recurring LLM cost;
+  at 1546 markets / hourly that ran ~$50/day (~$700 over the 14-day shadow). Clusters
+  change little hour-to-hour, so 12h cuts it ~12x (~$4/day). Does NOT affect signal
+  quality: WS book prices stream continuously so live violation detection on existing
+  clusters is unchanged, and the G3 ambiguity gate is per-unique-pair (cached in
+  ArbEngine._ambiguity_cache), not gated by this interval. Only tradeoff: newly
+  created market series wait up to 12h to be clustered — fine for prediction markets,
+  which list by-date/threshold series days ahead. | live shadow boot log 2026-06-29
+  23:35 (operator: Opus too expensive at hourly)
+[2026-06-30] llm_pair_model ADDED = claude-sonnet-4-6 | COST: split the two LLM call
+  sites. Bulk pair detection (feeds/clustering.py, high volume) moves to Sonnet
+  ($3/$15 vs Opus $5/$25, ~40%/token cheaper); the G3 semantic ambiguity gate
+  (engine/ambiguity.py, the moat) stays on llm_model=Opus. Pair detection is
+  error-tolerant (downstream-filtered by constraint engine + G2/G3 + human review),
+  so a cheaper model trades a little recall for cost; the judgment that risks real
+  capital stays at full strength. Rule 1: live must run the SAME pair model shadow
+  validated on. Stacked with the 12h interval → ~$2-3/day all-in. Watch
+  cluster_review.log for dropped ladders; revert to Opus pairing if recall thins. |
+  operator: "Opus too expensive", shadow report 2026-06-29 (0.2d)
+[2026-06-30] llm_max_tokens 4096 → 8192 | BUG FIX, not tuning: after discovery
+  expanded to 1546 markets, 3 LLM pair batches hit "unparseable JSON" — the
+  response was truncated mid-array at 4096 output tokens (a THRESHOLD ladder
+  emits many verbose pair objects), so the whole batch's pairs were dropped.
+  Paired with (a) prompt now asks for CONSECUTIVE links only on a ladder/series
+  instead of every O(n²) pairwise edge (union-find still connects the cluster;
+  the constraint engine re-checks all intra-cluster pairs, so no violations are
+  lost) + reasoning capped at 20 words, and (b) _parse_json now salvages every
+  complete pair object emitted before any remaining cutoff. | live shadow boot
+  log 2026-06-29 23:38
 
 ---
 
