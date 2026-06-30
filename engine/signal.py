@@ -93,6 +93,11 @@ class ArbEngine:
     # ── Gate ladder ──────────────────────────────────────────────────
     async def _gate(self, v: Violation, cluster) -> ShadowTrade:
         is_me = v.violation_type == ViolationType.MUTUALLY_EXCLUSIVE
+        # Executable-side depth, captured once: each leg consumes the side it
+        # trades (SELL→bids, BUY→asks). A one-sided book stays fillable on its
+        # live side — this never collapses to 0 the way depth()'s min() did.
+        da = self.cache.side_depth(v.pair.market_a.token_id, v.leg_a_side.value)
+        dbk = self.cache.side_depth(v.pair.market_b.token_id, v.leg_b_side.value)
 
         def trade(struct, sem, tier, reason) -> ShadowTrade:
             mult = (
@@ -113,6 +118,8 @@ class ArbEngine:
                 reason=reason,
                 detected_at=time.time(),
             )
+            st.book_depth_a = da
+            st.book_depth_b = dbk
             st.shadow_uid = uuid.uuid4().hex
             return st
 
@@ -134,9 +141,7 @@ class ArbEngine:
         if v.estimated_spread_after_slippage_cents < CFG.min_violation_spread_cents:
             return trade(0.0, 0.0, ConfidenceTier.LOW, "G4_SPREAD_TOO_SMALL")
 
-        # G5: depth on both legs
-        da = self.cache.depth(v.pair.market_a.token_id)
-        dbk = self.cache.depth(v.pair.market_b.token_id)
+        # G5: executable-side depth on both legs (da/dbk computed above)
         if da < CFG.min_book_depth_usd or dbk < CFG.min_book_depth_usd:
             return trade(0.0, 0.0, ConfidenceTier.LOW, "G5_ILLIQUID")
 

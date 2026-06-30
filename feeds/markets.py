@@ -190,14 +190,17 @@ class MarketDiscovery:
 # Local order-book cache (WebSocket-fed)
 # ─────────────────────────────────────────────────────────────────────
 class _Book:
-    __slots__ = ("bids", "asks", "best_bid", "best_ask", "depth_usd", "ts")
+    __slots__ = ("bids", "asks", "best_bid", "best_ask",
+                 "bid_depth_usd", "ask_depth_usd", "depth_usd", "ts")
 
     def __init__(self) -> None:
         self.bids: list[tuple[float, float]] = []   # (price, size) desc
         self.asks: list[tuple[float, float]] = []   # (price, size) asc
         self.best_bid: float = 0.0
         self.best_ask: float = 0.0
-        self.depth_usd: float = 0.0
+        self.bid_depth_usd: float = 0.0   # top-of-book USD you can SELL into
+        self.ask_depth_usd: float = 0.0   # top-of-book USD you can BUY from
+        self.depth_usd: float = 0.0       # min(bid, ask) — book_snapshot only, not gated on
         self.ts: float = 0.0
 
 
@@ -224,9 +227,22 @@ class LocalOrderBookCache:
             return 0.0, 0.0
         return b.best_bid, b.best_ask
 
-    def depth(self, token_id: str) -> float:
+    def bid_depth(self, token_id: str) -> float:
+        """Top-of-book USD you can SELL into (consume bids)."""
         b = self._books.get(token_id)
-        return b.depth_usd if b else 0.0
+        return b.bid_depth_usd if b else 0.0
+
+    def ask_depth(self, token_id: str) -> float:
+        """Top-of-book USD you can BUY from (consume asks)."""
+        b = self._books.get(token_id)
+        return b.ask_depth_usd if b else 0.0
+
+    def side_depth(self, token_id: str, side: str) -> float:
+        """Depth on the side a leg actually executes: BUY consumes asks, SELL
+        consumes bids. A one-sided book (live bids, empty asks) is fully
+        SELL-fillable — `depth()`'s min(bid, ask) would wrongly read it as 0."""
+        return self.ask_depth(token_id) if str(side).upper() == "BUY" \
+            else self.bid_depth(token_id)
 
     def is_fresh(self, token_id: str, max_age_sec: float = 30.0) -> bool:
         b = self._books.get(token_id)
@@ -297,9 +313,9 @@ class LocalOrderBookCache:
         b.asks = sorted((p, s) for p, s in asks if p > 0 and s > 0)
         b.best_bid = b.bids[0][0] if b.bids else 0.0
         b.best_ask = b.asks[0][0] if b.asks else 0.0
-        top_bid_usd = sum(p * s for p, s in b.bids[:3])
-        top_ask_usd = sum(p * s for p, s in b.asks[:3])
-        b.depth_usd = min(top_bid_usd, top_ask_usd)
+        b.bid_depth_usd = sum(p * s for p, s in b.bids[:3])
+        b.ask_depth_usd = sum(p * s for p, s in b.asks[:3])
+        b.depth_usd = min(b.bid_depth_usd, b.ask_depth_usd)
         b.ts = time.time()
 
     # ── WebSocket lifecycle ──────────────────────────────────────────

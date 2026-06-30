@@ -167,8 +167,8 @@ class Database:
             r.spread_60s,
             None if r.still_valid_at_15s is None else int(r.still_valid_at_15s),
             None if r.still_valid_at_30s is None else int(r.still_valid_at_30s),
-            round(p.market_a.depth_usd, 2),
-            round(p.market_b.depth_usd, 2),
+            round(getattr(r, "book_depth_a", 0.0), 2),   # live executable-side depth
+            round(getattr(r, "book_depth_b", 0.0), 2),   # (was MarketInfo.depth_usd — never populated)
             r.reason,
         )
 

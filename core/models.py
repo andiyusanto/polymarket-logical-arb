@@ -136,6 +136,10 @@ class ShadowTrade:
     spread_60s: Optional[float] = None
     still_valid_at_15s: Optional[bool] = None
     still_valid_at_30s: Optional[bool] = None
+    # Live executable-side book depth (USD) captured at gate time — the side each
+    # leg actually consumes (SELL→bids, BUY→asks). 0 = un-fillable on that side.
+    book_depth_a: float = 0.0
+    book_depth_b: float = 0.0
 
 
 @dataclass
