@@ -152,12 +152,21 @@ _DOWN_RE = re.compile(
     r"or\s+(?:lower|less))\b",
     re.IGNORECASE,
 )
+# Unambiguously-rising verbs/phrases (direction is in the word itself).
 _UP_RE = re.compile(
     r"\b(?:exceeds?|exceeding|above|over|more\s+than|greater\s+than|at\s+least|"
-    r"reach(?:es)?|reaching|hits?|hitting|surpass(?:es)?|surpassing|climbs?|"
-    r"climbing|rises?|rising|up\s+to|or\s+(?:higher|more|greater))\b",
+    r"surpass(?:es)?|surpassing|climbs?|climbing|rises?|rising|up\s+to|"
+    r"or\s+(?:higher|more|greater))\b",
     re.IGNORECASE,
 )
+# Approach verbs — direction depends on which side the metric starts from.
+# "reach $100k" (price climbing) is up; "hit 35%" (approval falling) is down.
+# Text alone can't tell them apart, so these only imply 'up' with a price cue.
+_APPROACH_RE = re.compile(r"\b(?:reach(?:es)?|reaching|hits?|hitting|touch(?:es)?|touching)\b",
+                          re.IGNORECASE)
+# A percentage threshold (%, "percent", "pp"). Poll/approval/rate ladders written
+# with an approach verb and NO explicit rise/fall cue are the danger case.
+_PCT_RE = re.compile(r"\d+(?:\.\d+)?\s*(?:%|percent|percentage\s+points?\b|pp\b)", re.IGNORECASE)
 
 
 def _threshold_direction(text: str):
@@ -167,6 +176,12 @@ def _threshold_direction(text: str):
     if _DOWN_RE.search(text):
         return "down"
     if _UP_RE.search(text):
+        return "up"
+    if _APPROACH_RE.search(text):
+        # bare approach verb on a %-threshold, no rise/fall cue → too ambiguous
+        # to leg safely (approval "hit 35%" is a fall, not a climb) → fail closed.
+        if _PCT_RE.search(text):
+            return None
         return "up"
     return None
 

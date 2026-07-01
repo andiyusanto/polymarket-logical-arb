@@ -48,6 +48,12 @@ def test_threshold_direction_classifier():
         "Will inflation be 5% or more in 2026?": "up",
         "Will unemployment be 5% or less in 2026?": "down",
         "Bitcoin price $60,000 question?": None,                              # fail-closed
+        # approach verb ('hit'/'reach') on a bare %-threshold: direction depends
+        # on which side the metric starts from → too ambiguous to leg → None
+        "Will Trump's approval rating hit 35% in 2026?": None,
+        "Will Trump's approval rating reach 30% in 2026?": None,
+        "Will Bitcoin hit $100k or higher?": "up",            # explicit rise cue wins
+        "Will inflation reach 5% or lower in 2026?": "down",  # explicit fall cue wins
     }
     for q, want in cases.items():
         assert _threshold_direction(q) == want, (q, _threshold_direction(q), want)
