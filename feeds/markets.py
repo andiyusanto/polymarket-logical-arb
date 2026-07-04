@@ -168,6 +168,17 @@ class MarketDiscovery:
         except (TypeError, ValueError):
             ask = 0.0
 
+        # Real per-market taker rate. Polymarket charges a min(p,1-p)-weighted fee
+        # at feeSchedule.rate (varies per market, ~0.03-0.05); 0.0 → engine falls
+        # back to CFG.polymarket_taker_fee.
+        sched = m.get("feeSchedule")
+        fee_rate = 0.0
+        if isinstance(sched, dict):
+            try:
+                fee_rate = float(sched.get("rate") or 0.0)
+            except (TypeError, ValueError):
+                fee_rate = 0.0
+
         no_idx = 1 - yes_idx if len(tids) >= 2 else yes_idx
         mi = MarketInfo(
             token_id=str(tids[yes_idx]),
@@ -180,6 +191,7 @@ class MarketDiscovery:
             neg_risk=neg_risk,
             neg_risk_market_id=str(nr_market_id),
             outcome=str(outcomes[yes_idx]) if yes_idx < len(outcomes) else "Yes",
+            taker_fee_rate=fee_rate,
             best_bid=ask,   # seed from Gamma's last price; WS overwrites on connect
             best_ask=ask,
         )

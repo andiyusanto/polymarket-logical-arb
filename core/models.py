@@ -59,6 +59,8 @@ class MarketInfo:
     neg_risk: bool = False
     neg_risk_market_id: str = ""     # groups outcomes of one NegRisk event
     outcome: str = "Yes"             # the outcome this token represents
+    taker_fee_rate: float = 0.0      # real per-market taker rate (feeSchedule.rate);
+                                     # 0.0 = unknown → callers fall back to CFG default
     # Live book (mirrored from the cache; 0.0 until first WS/REST update)
     best_bid: float = 0.0
     best_ask: float = 0.0

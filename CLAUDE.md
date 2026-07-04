@@ -383,6 +383,23 @@ Example:
   lost) + reasoning capped at 20 words, and (b) _parse_json now salvages every
   complete pair object emitted before any remaining cutoff. | live shadow boot
   log 2026-06-29 23:38
+[2026-07-04] taker fee model REWRITTEN (constraints.py) + polymarket_taker_fee now
+  a FALLBACK only | CORRECTNESS, not tuning: the old model charged a flat
+  0.02 × Σ(fill). Live Polymarket fee schedule (probed via analysis/fee_probe.py
+  2026-07-04) shows fees are ENABLED (feesEnabled=true), levied per-market at
+  feeSchedule.rate (NegRisk crypto/sports 0.03, some markets 0.05), SYMMETRIC and
+  weighted by min(p,1-p). Fix: feeds/markets.py reads feeSchedule.rate into new
+  MarketInfo.taker_fee_rate; constraints._taker_fee_cents charges
+  Σ rate_i · min(fill_i, 1-fill_i) per leg (fallback CFG.polymarket_taker_fee when
+  a market's rate wasn't captured). Effect: the old model UNDER-charged (2% vs real
+  3-5%) so G4 was letting through fee-negative ME as PASS (prefix.db's 96 PASS were
+  largely this). Corrected model → taker ME edge is negative at real fees (raw
+  over-round p50 1.4c < weighted fee ~2-2.7c on mid-priced legs). CONCLUSION: no
+  profitable TAKER edge at current Polymarket fees; the only positive-EV path is
+  MAKER execution (rebateRate 0.25, taker-only fee) which conflicts with the atomic
+  asyncio.gather two-leg submission that makes the arb risk-free — unresolved, do
+  NOT switch to maker without solving legging risk. | analysis/fee_probe.py output
+  + edge_breakdown on clean shadow_run.db 2026-07-04
 
 ---
 

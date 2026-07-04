@@ -32,6 +32,23 @@ log = logging.getLogger("arb.constraints")
 Prices = dict  # token_id -> (best_bid, best_ask)
 
 
+def _taker_fee_cents(legs) -> float:
+    """Polymarket taker fee, in cents, for a basket of filled legs.
+
+    `legs` is an iterable of (fill_price, MarketInfo). The real fee is SYMMETRIC
+    and weighted by min(p, 1-p) (largest near $0.50, ~0 at the extremes), levied
+    per leg at that market's own rate (feeSchedule.rate, ~0.03-0.05). Markets
+    whose rate we haven't captured fall back to CFG.polymarket_taker_fee.
+    """
+    total = 0.0
+    for fill, m in legs:
+        rate = getattr(m, "taker_fee_rate", 0.0) or 0.0
+        if rate <= 0.0:
+            rate = CFG.polymarket_taker_fee
+        total += rate * min(fill, 1.0 - fill)
+    return total * 100.0
+
+
 # ─────────────────────────────────────────────────────────────────────
 # Shared slippage / spread helper
 # ─────────────────────────────────────────────────────────────────────
@@ -56,7 +73,7 @@ def _leg_spread_cents(
             sell_fill = s
         if b is not None:
             buy_fill = b
-    fee = CFG.polymarket_taker_fee * (sell_fill + buy_fill) * 100.0
+    fee = _taker_fee_cents([(sell_fill, over), (buy_fill, under)])
     est = (sell_fill - buy_fill) * 100.0 - fee
     return round(raw, 4), round(est, 4)
 
@@ -422,7 +439,7 @@ def check_mutually_exclusive(
             f = cache.estimate_fill_price(m.token_id, "SELL", per_leg)
         sell_fills.append(f if f is not None else prices[m.token_id][0])
     sum_fill = sum(sell_fills)
-    fee = CFG.polymarket_taker_fee * sum_fill * 100.0
+    fee = _taker_fee_cents(list(zip(sell_fills, legs)))
     est_cents = (sum_fill - 1.0) * 100.0 - fee
 
     # Represent the basket via its two richest legs for the pair model.
