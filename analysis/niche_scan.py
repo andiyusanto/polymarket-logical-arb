@@ -49,7 +49,12 @@ def main():
     names = {}
     pages = 0
     for pg in range(60):            # up to 6000 markets
-        page = get(f"{GAMMA}/markets?active=true&closed=false&archived=false&limit=100&offset={pg*100}")
+        try:
+            page = get(f"{GAMMA}/markets?active=true&closed=false&archived=false&limit=100&offset={pg*100}")
+        except Exception as e:
+            # Gamma 422s once offset runs past the available set — treat as end.
+            print(f"  [stopped paging at offset {pg*100}: {e}]")
+            break
         if not page:
             break
         pages += 1
